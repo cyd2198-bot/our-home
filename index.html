@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리집 아지트 - 따뜻한 가족 안부 냉장고</title>
+    <!-- Google Fonts: Gaegu (cute round handwriting), Gamja Flower, Nanum Pen Script -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Gamja+Flower&family=Nanum+Pen+Script&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 캐시 무력화 버전 파라미터 -->
+    <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body class="theme-main">
+    <!-- 안부 공백 시 화면을 따스하게 노을빛으로 물들이는 선셋 필터 -->
+    <div id="sunset-overlay" class="sunset-overlay"></div>
+
+    <!-- 1. 책 표지 감성의 인트로 모달 -->
+    <div id="intro-modal" class="intro-modal-overlay">
+        <div class="book-cover-card animate-book-open">
+            <div class="book-cover-spine"></div>
+            <div class="book-cover-content">
+                <div class="intro-header">
+                    <i class="fa-solid fa-heart-circle-check intro-logo-icon"></i>
+                    <h2>우리집 아지트</h2>
+                    <p class="book-sub">가장 다정하고 따뜻한 우리 가족만의 안부 소통 냉장고</p>
+                </div>
+                
+                <div class="intro-body">
+                    <div class="intro-step">
+                        <label class="intro-label">1. 가족 안에서 내 역할을 선택해 주세요</label>
+                        <div class="intro-role-selector">
+                            <button type="button" id="intro-role-child" class="intro-role-btn active" data-role="child">
+                                <i class="fa-solid fa-child"></i> 자녀
+                            </button>
+                            <button type="button" id="intro-role-parent" class="intro-role-btn" data-role="parent">
+                                <i class="fa-solid fa-person-cane"></i> 부모님
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="intro-step">
+                        <label for="intro-nickname" class="intro-label">2. 다른 가족들이 부를 내 호칭을 적어주세요</label>
+                        <input type="text" id="intro-nickname" placeholder="예: 첫째, 막내, 엄마, 아빠" maxlength="6" required>
+                    </div>
+
+                    <div class="intro-step border-top">
+                        <label class="intro-label">3. 가족 전용 냉장고 연결 방식 선택</label>
+                        <div class="code-method-selector">
+                            <button type="button" id="btn-method-create" class="method-btn active">
+                                <i class="fa-solid fa-square-plus"></i> 새 냉장고 만들기
+                            </button>
+                            <button type="button" id="btn-method-join" class="method-btn">
+                                <i class="fa-solid fa-key"></i> 가족 코드로 참여하기
+                            </button>
+                        </div>
+
+                        <div id="join-code-wrapper" class="join-code-wrapper hidden">
+                            <input type="text" id="join-room-code" placeholder="가족에게 공유받은 8자리 코드 입력" maxlength="9">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="intro-footer">
+                    <button type="button" id="btn-start-app" class="btn btn-primary btn-block">
+                        <i class="fa-solid fa-door-open"></i> 냉장고 열기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 안부 전화 추천 배너 알림 -->
+    <div id="push-notification-banner" class="push-notification hidden">
+        <div class="notification-icon">
+            <i class="fa-solid fa-phone-volume"></i>
+        </div>
+        <div class="notification-content">
+            <h4 class="notification-title">따뜻한 안부 권장</h4>
+            <p id="notification-message" class="notification-body">부모님 냉장고가 고요합니다. 따뜻한 안부 전화를 걸어보시는 건 어떨까요?</p>
+        </div>
+        <button id="close-notification-btn" class="notification-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- 2. 메인 앱 컨테이너 (냉장고 모델 레이아웃) -->
+    <div class="app-container">
+        <div class="fridge-container">
+            <!-- 냉장고 상단 문 (메인 캔버스) -->
+            <div class="fridge-door-upper">
+                <!-- 리본 타이틀 배너 -->
+                <div class="fridge-ribbon-banner">
+                    <span id="fridge-title-display">우리집 아지트</span>
+                </div>
+
+                <!-- 상단 우측 유틸리티 버튼들 -->
+                <div class="fridge-actions">
+                    <button id="btn-share-room" class="fridge-action-btn" title="가족 코드 공유">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                    <button id="btn-open-settings" class="fridge-action-btn" title="공간 설정">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button id="btn-open-clear" class="fridge-action-btn btn-danger-action" title="전체 자석 떼기">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+
+                <!-- 자석 보드 캔버스 -->
+                <div id="fridge-board" class="fridge-board">
+                    <div id="magnet-canvas" class="magnet-canvas">
+                        <!-- 자석들이 드래그 앤 드롭으로 부착되는 영역 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 냉장고 문 틈새 및 가로 손잡이 -->
+            <div class="fridge-door-split">
+                <div class="fridge-door-handle"></div>
+            </div>
+
+            <!-- 냉장고 하단 문 (서랍 영역) -->
+            <div class="fridge-door-lower">
+                <!-- 자석 보관 서랍 -->
+                <div class="fridge-drawer-container">
+                    <div class="fridge-drawer-box">
+                        <!-- 퀵 자석 아이템 및 추가 버튼 -->
+                        <div class="quick-magnet" data-emoji="☕" data-label="커피 휴식">
+                            <span class="quick-emoji">☕</span>
+                        </div>
+                        <div class="quick-magnet" data-emoji="🏃" data-label="산책 완료">
+                            <span class="quick-emoji">🏃</span>
+                        </div>
+                        <div class="quick-magnet" data-emoji="💊" data-label="약 복용">
+                            <span class="quick-emoji">💊</span>
+                        </div>
+                        <button id="btn-open-drawer-plus" class="quick-magnet-plus" title="더 많은 자석 / 일정 작성">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="fridge-drawer-label">나의 자석 서랍</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 설정 및 정보 모달 (Settings Modal) -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="cozy-modal-card animate-modal-open">
+            <div class="cozy-modal-header">
+                <h3><i class="fa-solid fa-gear"></i> 공간 설정 및 정보</h3>
+                <button id="btn-close-settings" class="modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="cozy-modal-body">
+                <div class="bookmark-tabs-container">
+                    <!-- 스크립트 탭 전환을 지원하기 위한 탭 정의 -->
+                    <button class="bookmark-tab active" data-target="panel-home">
+                        <span><i class="fa-solid fa-house-chimney"></i> 홈 / 설정</span>
+                    </button>
+                    <button class="bookmark-tab" data-target="panel-simulators">
+                        <span><i class="fa-solid fa-wand-magic-sparkles"></i> 시뮬레이터</span>
+                    </button>
+                </div>
+
+                <div class="page-content-wrapper">
+                    <!-- 탭 패널 1: 홈 / 설정 -->
+                    <div class="page-panel active" id="panel-home">
+                        <!-- 접속 사용자 요약 -->
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-user-check"></i> 접속 상태</h4>
+                            <div class="book-status-badge">
+                                <span class="status-indicator online"></span>
+                                <span id="active-user-display">접속 중: 자녀</span>
+                            </div>
+                        </div>
+
+                        <!-- 가족 공간 설정 -->
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-house-laptop"></i> 우리 가족 공간</h4>
+                            <div class="setting-group">
+                                <label class="setting-label">우리 가족 전용 연결 코드</label>
+                                <div class="room-code-display-row">
+                                    <span id="room-code-value" class="room-code-badge">ROOM-0000</span>
+                                    <button id="btn-copy-code" class="btn btn-secondary btn-sm" title="코드 복사">
+                                        <i class="fa-regular fa-copy"></i> 복사
+                                    </button>
+                                    <button id="btn-change-room" class="btn btn-danger btn-sm" title="가족 공간 나가기">
+                                        <i class="fa-solid fa-right-from-bracket"></i> 나가기
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="setting-group" style="margin-top: 12px;">
+                                <label class="setting-label" for="fridge-title-input">냉장고 이름 설정</label>
+                                <input type="text" id="fridge-title-input" placeholder="예: 우리집 아지트, 행복한 집" maxlength="12" style="width: 100%;">
+                            </div>
+                        </div>
+
+                        <!-- 사용자 프로필 설정 -->
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-circle-user"></i> 내 자석 설정</h4>
+                            <div class="setting-group">
+                                <label class="setting-label">가족 고유 호칭 및 테마색</label>
+                                <div class="profile-editor">
+                                    <div class="input-row">
+                                        <input type="text" id="user-nickname" placeholder="내 호칭 입력 (예: 첫째, 엄마)" maxlength="6">
+                                        <div class="color-picker-wrapper">
+                                            <span class="color-dot-display" id="selected-color-dot"></span>
+                                            <select id="user-color" class="color-select">
+                                                <option value="sky-blue">스카이 블루</option>
+                                                <option value="sage-green">세이지 그린</option>
+                                                <option value="lavender-purple">라벤더 퍼플</option>
+                                                <option value="warm-orange">웜 오렌지</option>
+                                                <option value="rose-pink">로즈 핑크</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 스마트폰 위젯 프리뷰 -->
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-mobile-screen"></i> 스마트폰 위젯 프리뷰</h4>
+                            <div class="phone-mockup-wrapper">
+                                <div class="phone-mockup">
+                                    <div class="phone-screen">
+                                        <div class="phone-status-bar">
+                                            <span>20:36</span>
+                                            <div class="phone-status-icons">
+                                                <i class="fa-solid fa-wifi"></i>
+                                                <i class="fa-solid fa-battery-three-quarters"></i>
+                                            </div>
+                                        </div>
+                                        <div class="widget-preview-box">
+                                            <div class="widget-header">
+                                                <span class="widget-title"><i class="fa-solid fa-heart"></i> 우리집 냉장고</span>
+                                                <span class="widget-time" id="widget-update-time">방금 전</span>
+                                            </div>
+                                            <div class="widget-body" id="widget-items-container">
+                                                <div class="widget-empty">냉장고가 비어있습니다.</div>
+                                            </div>
+                                        </div>
+                                        <div class="phone-home-indicator"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Firebase 실시간 연동 -->
+                        <div class="panel-section">
+                            <div class="card card-collapsed" id="firebase-card">
+                                <h4 class="card-title" id="firebase-card-header">
+                                    <span><i class="fa-brands fa-firebase color-firebase"></i> Firebase 연동 (선택)</span>
+                                    <i class="fa-solid fa-chevron-down toggle-icon"></i>
+                                </h4>
+                                <div class="card-body hidden" id="firebase-card-body">
+                                    <p class="help-text">실제 Realtime DB를 연동하면 다른 가족 기기와 연동 가능합니다.</p>
+                                    <div class="form-group" style="margin-top: 8px;">
+                                        <textarea id="fb-config-json" rows="3" placeholder='Firebase Config JSON 입력'></textarea>
+                                    </div>
+                                    <button id="btn-save-firebase" class="btn btn-primary btn-sm btn-block">연결</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 패널 2: 시뮬레이터 -->
+                    <div class="page-panel" id="panel-simulators">
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-user-gear"></i> 역할 전환</h4>
+                            <div class="setting-group">
+                                <label class="setting-label">현재 기기의 사용자 역할 전환</label>
+                                <div class="role-selector">
+                                    <button id="btn-role-child" class="role-btn active" data-role="child">자녀 모드</button>
+                                    <button id="btn-role-parent" class="role-btn" data-role="parent">부모님 모드</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-section">
+                            <h4 class="panel-title"><i class="fa-solid fa-clock"></i> 안부 공백 & 시뮬레이션</h4>
+                            <div class="setting-group timer-group">
+                                <div class="timer-flex">
+                                    <span>부모님 안부 공백 경과 시간:</span>
+                                    <strong id="idle-timer-display" class="timer-normal">00시간 00분 00초</strong>
+                                </div>
+                                <div class="slider-wrapper">
+                                    <label for="idle-speed-slider">시간 배속: <span id="speed-label">실시간 (1x)</span></label>
+                                    <input type="range" id="idle-speed-slider" min="1" max="3600" value="1">
+                                </div>
+                            </div>
+
+                            <div class="btn-grid" style="margin-top: 14px;">
+                                <button id="btn-trigger-midnight" class="btn btn-secondary btn-sm">
+                                    <i class="fa-solid fa-moon"></i> 밤 12시 회수 시물레이션
+                                </button>
+                                <button id="btn-simulate-idle" class="btn btn-secondary btn-sm">
+                                    <i class="fa-solid fa-hourglass-half"></i> 48시간 공백 트리거
+                                </button>
+                                <button id="btn-clear-all" class="btn btn-danger btn-sm">
+                                    <i class="fa-solid fa-trash-can"></i> 전체 자석 떼기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 자석 추가 모달 (Add Magnet Modal) -->
+    <div id="add-magnet-modal" class="modal-overlay hidden">
+        <div class="cozy-modal-card animate-modal-open">
+            <div class="cozy-modal-header">
+                <h3><i class="fa-solid fa-box-open"></i> 자석 서랍 / 일정 작성</h3>
+                <button id="btn-close-add-magnet" class="modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="cozy-modal-body">
+                <!-- 오늘 내 기분 -->
+                <div class="panel-section">
+                    <h4 class="panel-title"><i class="fa-solid fa-heart" style="color: var(--danger-color);"></i> 오늘 내 기분</h4>
+                    <p class="section-desc">현재 기분을 나타내는 자석을 냉장고에 즉시 붙여보세요.</p>
+                    <div class="sticker-grid" id="mood-sticker-grid">
+                        <button type="button" class="sticker-item" data-emoji="☀️" data-label="컨디션 맑음">
+                            <span class="sticker-emoji">☀️</span>
+                            <span class="sticker-label">컨디션 맑음</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="🌸" data-label="기분 상쾌">
+                            <span class="sticker-emoji">🌸</span>
+                            <span class="sticker-label">기분 상쾌</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="💖" data-label="행복해요">
+                            <span class="sticker-emoji">💖</span>
+                            <span class="sticker-label">행복해요</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="🌿" data-label="평온해요">
+                            <span class="sticker-emoji">🌿</span>
+                            <span class="sticker-label">평온해요</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="😴" data-label="피곤해요">
+                            <span class="sticker-emoji">😴</span>
+                            <span class="sticker-label">피곤해요</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="💼" data-label="바쁜 하루">
+                            <span class="sticker-emoji">💼</span>
+                            <span class="sticker-label">바쁜 하루</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="🤒" data-label="몸 찌뿌둥">
+                            <span class="sticker-emoji">🤒</span>
+                            <span class="sticker-label">몸 찌뿌둥</span>
+                        </button>
+                        <button type="button" class="sticker-item" data-emoji="🌧️" data-label="울적해요">
+                            <span class="sticker-emoji">🌧️</span>
+                            <span class="sticker-label">울적해요</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 오늘의 일상 스티커 조합 (안부 조합소) -->
+                <div class="panel-section">
+                    <h4 class="panel-title"><i class="fa-solid fa-face-smile"></i> 오늘의 일상 스티커 조합</h4>
+                    <p class="section-desc">원하는 이모지와 행동을 선택하여 오늘 하루의 상태 자석을 달아보세요. (매일 밤 12시 자동 회수)</p>
+                    
+                    <form id="emoji-sticker-form" class="schedule-form-vertical">
+                        <!-- 앞부분: 내 이모지 직접 선택 -->
+                        <div class="form-group">
+                            <label class="setting-label" for="sticker-emoji-input">1단계: 앞부분 (터치하여 스마트폰 이모지 입력)</label>
+                            <div class="emoji-input-wrapper">
+                                <input type="text" id="sticker-emoji-input" class="sticker-emoji-input" value="☀️" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+                                <span class="emoji-input-tip">💡 키보드에서 원하는 이모지를 선택하세요!</span>
+                            </div>
+                        </div>
+
+                        <!-- 뒷부분: 행동 서술어 선택 -->
+                        <div class="form-group">
+                            <label class="setting-label">2단계: 뒷부분 (행동 서술어 선택)</label>
+                            <div class="combo-text-picker" id="sticker-text-picker">
+                                <button type="button" class="combo-text-btn active" data-val="중 🏃">중 🏃</button>
+                                <button type="button" class="combo-text-btn" data-val="완료‼️">완료‼️</button>
+                                <button type="button" class="combo-text-btn" data-val="먹는 중 😋">먹는 중 😋</button>
+                                <button type="button" class="combo-text-btn" data-val="가요 🚗">가요 🚗</button>
+                                <button type="button" class="combo-text-btn" data-val="해요 💬">해요 💬</button>
+                            </div>
+                        </div>
+
+                        <!-- 조합 결과 미리보기 -->
+                        <div class="form-group">
+                            <label class="setting-label">조합 결과 미리보기</label>
+                            <input type="text" id="sticker-preview-text" class="combo-preview-input" value="☀️ 중 🏃" readonly>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa-solid fa-circle-check"></i> 일상 스티커 부착
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 일정 및 기록 종이메모 자석 생성 (원래대로 유지) -->
+                <div class="panel-section">
+                    <h4 class="panel-title"><i class="fa-solid fa-paperclip"></i> 강력 집게 자석 (일정 및 기록)</h4>
+                    <p class="section-desc">날짜 미지정 시 지워지지 않는 영구 메모 자석이 됩니다.</p>
+                    
+                    <form id="schedule-form" class="schedule-form-vertical">
+                        <div class="form-group">
+                            <label for="schedule-date">일정 날짜 (선택)</label>
+                            <input type="date" id="schedule-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule-text">약속 및 기록 내용 (최대 20자)</label>
+                            <input type="text" id="schedule-text" placeholder="예: 시골집 방문, 약국 동행" maxlength="20" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa-solid fa-paperclip"></i> 강력 집게 자석 부착
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- 스크립트 버전 캐시방지 연동 -->
+    <script src="sound_effects.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+</body>
+</html>
