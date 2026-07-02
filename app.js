@@ -244,9 +244,22 @@ function initFridgeSpace() {
     
     startIdleMonitoring();
 
+    const DEFAULT_FIREBASE_CONFIG = {
+        apiKey: "AIzaSyBTdk8o2HPfhuM5Rc9_81yeS44mgmgNgPs",
+        authDomain: "project-6571525263674351304.firebaseapp.com",
+        databaseURL: "https://project-6571525263674351304-default-rtdb.firebaseio.com",
+        projectId: "project-6571525263674351304",
+        storageBucket: "project-6571525263674351304.firebasestorage.app",
+        messagingSenderId: "107327660918",
+        appId: "1:107327660918:web:57c7f783868dae254f1057"
+    };
+
     const savedConfig = localStorage.getItem('virtual_fridge_firebase_config');
     if (savedConfig) {
         autoConnectFirebase(savedConfig);
+    } else {
+        initializeFirebase(DEFAULT_FIREBASE_CONFIG);
+        console.log("Firebase initialized with default configuration.");
     }
 }
 
