@@ -243,6 +243,11 @@ function initFridgeSpace() {
     updateActiveUserUI();
     
     startIdleMonitoring();
+
+    const savedConfig = localStorage.getItem('virtual_fridge_firebase_config');
+    if (savedConfig) {
+        autoConnectFirebase(savedConfig);
+    }
 }
 
 // --- 공통 이벤트 바인딩 ---
@@ -511,6 +516,13 @@ function bindCommonEvents() {
     });
 
     btnSaveFirebase.addEventListener('click', connectFirebase);
+
+    if (fbConfigJson) {
+        const savedConfig = localStorage.getItem('virtual_fridge_firebase_config');
+        if (savedConfig) {
+            fbConfigJson.value = savedConfig;
+        }
+    }
 }
 
 function switchRole(role) {
@@ -992,7 +1004,36 @@ function clearAllMagnets() {
     }
 }
 
-// --- Firebase 연결 ---
+// --- Firebase connection ---
+function initializeFirebase(config) {
+    if (firebase.apps.length > 0) {
+        firebase.app().delete();
+    }
+
+    firebase.initializeApp(config);
+    state.db = firebase.database();
+    state.isFirebaseConnected = true;
+
+    state.db.ref(`rooms/${state.roomCode}/magnets`).on('value', (snapshot) => {
+        const data = snapshot.val();
+        state.magnets = data || [];
+        localStorage.setItem(state.storageKey, JSON.stringify(state.magnets));
+        calculateParentLastUpdateTime();
+        renderFridge();
+        renderWidget();
+    });
+
+    state.db.ref(`rooms/${state.roomCode}/title`).on('value', (snapshot) => {
+        const titleVal = snapshot.val();
+        if (titleVal) {
+            state.fridgeTitle = titleVal;
+            localStorage.setItem(`virtual_fridge_title_${state.roomCode}`, titleVal);
+            if (fridgeTitleDisplay) fridgeTitleDisplay.textContent = state.fridgeTitle;
+            if (fridgeTitleInput) fridgeTitleInput.value = state.fridgeTitle;
+        }
+    });
+}
+
 function connectFirebase() {
     const configStr = fbConfigJson.value.trim();
     if (!configStr) {
@@ -1002,36 +1043,21 @@ function connectFirebase() {
 
     try {
         const config = JSON.parse(configStr);
-        if (firebase.apps.length > 0) {
-            firebase.app().delete();
-        }
-
-        firebase.initializeApp(config);
-        state.db = firebase.database();
-        state.isFirebaseConnected = true;
-
-        state.db.ref(`rooms/${state.roomCode}/magnets`).on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                state.magnets = data;
-                calculateParentLastUpdateTime();
-                renderFridge();
-                renderWidget();
-            }
-        });
-
-        state.db.ref(`rooms/${state.roomCode}/title`).on('value', (snapshot) => {
-            const titleVal = snapshot.val();
-            if (titleVal) {
-                state.fridgeTitle = titleVal;
-                if (fridgeTitleDisplay) fridgeTitleDisplay.textContent = titleVal;
-                if (fridgeTitleInput) fridgeTitleInput.value = titleVal;
-            }
-        });
-
-        alert(`Firebase와 연결되었습니다! 이제 '${state.roomCode}' 코드를 공유하는 가족 간에 크로스 디바이스 동기화가 활성화됩니다.`);
+        initializeFirebase(config);
+        localStorage.setItem('virtual_fridge_firebase_config', configStr);
+        alert('Firebase와 연결되었습니다! 이제 ' + state.roomCode + ' 코드를 공유하는 가족 간에 크로스 디바이스 동기화가 활성화됩니다.');
     } catch (err) {
         alert('JSON 설정 또는 Firebase 연결 실패: \n' + err.message);
+    }
+}
+
+function autoConnectFirebase(configStr) {
+    try {
+        const config = JSON.parse(configStr);
+        initializeFirebase(config);
+        console.log("Firebase auto-connected.");
+    } catch (err) {
+        console.error("Firebase auto-connection failed:", err);
     }
 }
 
